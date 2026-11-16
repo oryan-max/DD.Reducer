@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.venv/
+check_min.py
+*.min
+!fixtures/*.min

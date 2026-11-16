@@ -1,0 +1,9 @@
+import unittest
+def buggy_percentage(part, total):
+    # Bug: returns wrong calculation
+    return (part / total) * 10
+class TestMathModule(unittest.TestCase):
+    def test_failing_percentage(self):
+        # 50 out of 100 should be 50%, but buggy_percentage returns 5.0
+        self.assertEqual(buggy_percentage(50, 100), 50.0)
+

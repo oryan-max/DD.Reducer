@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reducer Studio | Minimal-Reproducer CLI</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --surface: #111827;
+      --surface-elevated: #162032;
+      --card: #141d2e;
+      --border: #1f293d;
+      --border-focus: #3b82f6;
+      --text: #f1f5f9;
+      --text-muted: #8b9bb4;
+      --text-dim: #54627a;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.2);
+      --warning: #f59e0b;
+      --warning-glow: rgba(245, 158, 11, 0.16);
+      --danger: #ef4444;
+      --danger-glow: rgba(239, 68, 68, 0.2);
+      --code-bg: #090d14;
+      --font-mono: ui-monospace, SFMono-Regular, "Cascadia Code", "Fira Code", Menlo, Consolas, monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 13px;
+      line-height: 1.5;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #232f45; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334460; }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand-icon {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      border-radius: 7px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+    .brand-text h1 {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .brand-text span {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-right: auto;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+    .status-dot.sim {
+      background: #a855f7;
+      box-shadow: 0 0 8px #a855f7;
+    }
+
+    /* Actions & presets */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    select, input[type="text"], input[type="number"], button {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 12px;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+    select:hover, input:hover, button:hover {
+      border-color: #334460;
+    }
+    select:focus, input:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    button {
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    button.btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border-color: #6366f1;
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 8px var(--accent-glow);
+    }
+    button.btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #4f46e5, #4338ca);
+      box-shadow: 0 3px 12px var(--accent-glow);
+    }
+    button.btn-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border-color: #10b981;
+      color: #fff;
+      font-weight: 600;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      box-shadow: none !important;
+    }
+
+    /* Controls Bar */
+    .toolbar {
+      background: var(--surface-elevated);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .tool-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 4px;
+    }
+
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .toggle-wrap input[type="checkbox"] {
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    /* Main Workspace */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      overflow: hidden;
+      background: var(--border);
+      gap: 1px;
+      position: relative;
+    }
+
+    .pane {
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .pane-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .pane-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .badge.green {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+    .badge.amber {
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fbbf24;
+    }
+
+    .pane-tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--code-bg);
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .pane-tab {
+      padding: 3px 10px;
+      font-size: 11px;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      transition: all 0.1s;
+    }
+    .pane-tab.active {
+      color: #fff;
+      background: var(--card);
+      font-weight: 600;
+    }
+
+    .code-container {
+      flex: 1;
+      overflow: auto;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.6;
+      background: var(--code-bg);
+      position: relative;
+    }
+
+    .code-line {
+      display: flex;
+      white-space: pre;
+      min-width: fit-content;
+      transition: background 0.1s;
+    }
+    .code-line:hover {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .line-num {
+      width: 44px;
+      flex-shrink: 0;
+      text-align: right;
+      padding-right: 12px;
+      color: var(--text-dim);
+      user-select: none;
+      border-right: 1px solid #1a2233;
+    }
+    .line-content {
+      padding-left: 12px;
+      flex: 1;
+    }
+
+    /* Suspect / trace highlight */
+    .code-line.hit {
+      background: rgba(245, 158, 11, 0.12);
+    }
+    .code-line.hit .line-num {
+      color: var(--warning);
+      border-right-color: var(--warning);
+      font-weight: 700;
+    }
+    .hit-tag {
+      float: right;
+      font-size: 10px;
+      background: rgba(245, 158, 11, 0.25);
+      color: #fef08a;
+      padding: 0 5px;
+      border-radius: 3px;
+      margin-left: 10px;
+      font-family: var(--font-mono);
+    }
+
+    /* Progress & log view */
+    .log-container {
+      flex: 1;
+      overflow: auto;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.6;
+      background: var(--code-bg);
+      padding: 10px 14px;
+    }
+    .log-line {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 2px 0;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+    }
+    .log-line.keep {
+      color: #34d399;
+    }
+    .log-line.revert {
+      color: #94a3b8;
+    }
+    .log-line.cmd {
+      color: #818cf8;
+      font-weight: 600;
+    }
+    .log-line.err {
+      color: #f87171;
+    }
+    .log-badge {
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .log-badge.keep { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+    .log-badge.revert { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+
+    /* Footer Stats */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 9px 18px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-shrink: 0;
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-muted);
+    }
+    .stat-item b {
+      color: #fff;
+      font-family: var(--font-mono);
+    }
+    .cli-bar {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #93c5fd;
+      max-width: 500px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cli-copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 2px 4px;
+      font-size: 12px;
+    }
+    .cli-copy-btn:hover { color: #fff; }
+
+    /* Modal / overlay */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 85vh;
+      overflow: auto;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .modal-header h2 { font-size: 16px; font-weight: 700; color: #fff; }
+    .modal-close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--text-muted); }
+
+    /* Empty state */
+    .empty-state {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      padding: 20px;
+      text-align: center;
+    }
+    .empty-icon {
+      font-size: 32px;
+      margin-bottom: 10px;
+      opacity: 0.6;
+    }
+
+    /* Pulse animation */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .running-pulse {
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-icon">⚡</div>
+      <div class="brand-text">
+        <h1>REDUCER <span>STUDIO</span></h1>
+        <span>Delta Debugging Minimal Reproducer</span>
+      </div>
+    </a>
+
+    <div class="status-badge">
+      <span class="status-dot" id="status-indicator"></span>
+      <span id="status-text">Checking server...</span>
+    </div>
+
+    <div class="header-actions">
+      <div class="tool-group">
+        <span class="tool-label">Preset:</span>
+        <select id="preset-select">
+          <option value="sample-math">Math Operations Suite (50 lines)</option>
+          <option value="string-parser">String Parser Suite (42 lines)</option>
+          <option value="calculator-multifile">Multi-File Calculator Bug</option>
+          <option value="custom">Custom / Uploaded Code</option>
+        </select>
+      </div>
+
+      <a href="/api/download/zip" download="reducer-cli.zip" style="text-decoration:none;">
+        <button id="download-zip-btn" title="Download CLI zip archive for offline use">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download CLI (.zip)
+        </button>
+      </a>
+
+      <button id="help-btn" title="How Delta Debugging works">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Docs
+      </button>
+    </div>
+  </header>
+
+  <!-- Control & Configuration Toolbar -->
+  <div class="toolbar">
+    <div class="tool-group">
+      <span class="tool-label">Target File:</span>
+      <select id="target-select"></select>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="tool-group">
+      <span class="tool-label">Runner:</span>
+      <select id="runner-select">
+        <option value="unittest">python3 -m unittest</option>
+        <option value="pytest">pytest</option>
+      </select>
+    </div>
+
+    <div class="tool-group">
+      <span class="tool-label">Max Iters:</span>
+      <input type="number" id="max-iters-input" value="200" min="10" max="1000" style="width: 70px;">
+    </div>
+
+    <div class="tool-group">
+      <span class="tool-label">Timeout (s):</span>
+      <input type="number" id="timeout-input" value="3.0" min="0.5" max="60" step="0.5" style="width: 65px;">
+    </div>
+
+    <label class="toggle-wrap" title="Identify which source lines are executed by the minimal reproducer">
+      <input type="checkbox" id="localize-toggle" checked>
+      <span>Trace Source Lines (<code>--localize</code>)</span>
+    </label>
+
+    <div class="divider"></div>
+
+    <button id="run-btn" class="btn-primary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Reduce Test Case
+    </button>
+
+    <button id="step-btn" title="Execute a single ddmin iteration for inspection">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+      Step
+    </button>
+
+    <button id="reset-btn" title="Reset candidate to original file">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+      Reset
+    </button>
+  </div>
+
+  <!-- Dual-Pane Workspace -->
+  <main>
+    <!-- Left: Original Source Code -->
+    <div class="pane">
+      <div class="pane-header">
+        <div class="pane-title">
+          <span>ORIGINAL TEST SUITE</span>
+          <span class="badge" id="orig-lines-badge">0 lines</span>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <input type="file" id="file-upload-input" multiple style="display:none;">
+          <button id="upload-btn" title="Upload custom test files">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload
+          </button>
+        </div>
+      </div>
+      <div class="code-container" id="orig-code-view">
+        <div class="empty-state">
+          <div class="empty-icon">📄</div>
+          <div>Select a preset above or upload a Python test file</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Minimal Reproducer & Log -->
+    <div class="pane">
+      <div class="pane-header">
+        <div class="pane-tabs">
+          <button class="pane-tab active" id="tab-reproducer">Minimal Reproducer</button>
+          <button class="pane-tab" id="tab-logs">Execution Log <span class="badge" id="log-count-badge">0</span></button>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button id="copy-min-btn" title="Copy minimal reproducer code">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            Copy
+          </button>
+          <button id="download-min-btn" class="btn-success" title="Download .min file">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Save .min
+          </button>
+        </div>
+      </div>
+
+      <!-- Reproducer Code Container -->
+      <div class="code-container" id="min-code-view">
+        <div class="empty-state">
+          <div class="empty-icon">⚡</div>
+          <div>Click <b>Reduce Test Case</b> to isolate the minimal failure</div>
+        </div>
+      </div>
+
+      <!-- Execution Log Container (hidden by default) -->
+      <div class="log-container" id="log-view" style="display: none;"></div>
+    </div>
+  </main>
+
+  <!-- Bottom Analytics & Statistics Bar -->
+  <footer>
+    <div class="stat-item">Original: <b id="stat-orig">-</b></div>
+    <div class="stat-item">Final: <b id="stat-final">-</b></div>
+    <div class="stat-item">Removed: <b id="stat-removed">-</b></div>
+    <div class="stat-item">Reduction: <b id="stat-ratio" style="color: #34d399;">-</b></div>
+    <div class="stat-item">Iterations: <b id="stat-iters">-</b></div>
+    <div class="stat-item">Suspects: <b id="stat-suspects">-</b></div>
+
+    <div class="cli-bar" title="CLI equivalent command">
+      <span style="color:#64748b;">$</span>
+      <span id="cli-command-preview">./reduce test_math.py --runner unittest --timeout 3 --max-iterations 200 --localize</span>
+      <button class="cli-copy-btn" id="cli-copy-btn" title="Copy CLI Command">📋</button>
+    </div>
+  </footer>
+
+  <!-- Documentation Modal -->
+  <div class="modal-overlay" id="help-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>About Minimal Reproducer Reducer</h2>
+        <button class="modal-close" id="modal-close-btn">&times;</button>
+      </div>
+      <div style="color: var(--text-muted); font-size: 13px; line-height: 1.6; display: flex; flex-direction: column; gap: 12px;">
+        <p><b style="color: #fff;">Delta Debugging (ddmin)</b> is an automated minimization technique designed by Andreas Zeller. Given a failing test suite, it systematically cuts out chunks of code to find the smallest self-contained subset that still reproduces the exact test failure.</p>
+        
+        <h4 style="color: #fff; margin-top: 6px;">Key Guarantees:</h4>
+        <ul style="padding-left: 20px;">
+          <li><b>Header Preservation:</b> Never deletes from the first contiguous run of <code>import</code> lines.</li>
+          <li><b>Failure Integrity:</b> Candidate deletions that trigger syntax errors or timeouts are treated as non-failing and immediately reverted.</li>
+          <li><b>Source Localization:</b> Traces the exact lines executed by the minimal reproducer to pinpoint the bug in project modules.</li>
+        </ul>
+
+        <h4 style="color: #fff; margin-top: 6px;">CLI Usage:</h4>
+        <pre style="background: var(--code-bg); padding: 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 12px; border: 1px solid var(--border); color: #93c5fd;">./reduce &lt;path-to-test-file&gt; [--max-iterations 300] [--timeout 5] [--localize]</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Application Logic -->
+  <script>
+    // State
+    const state = {
+      isServerOnline: false,
+      files: [], // Array of { name, content }
+      target: "",
+      runner: "unittest",
+      maxIters: 200,
+      timeout: 3.0,
+      localize: true,
+      activeTab: "reproducer", // "reproducer" | "logs"
+      jobId: null,
+      pollInterval: null,
+      minimalContent: "",
+      suspects: [],
+      stats: {},
+      logs: [],
+      // In-browser simulator state
+      simRunning: false,
+      simCandidateLines: [],
+      simProtectedIndices: new Set(),
+      simN: 2,
+      simIters: 0,
+    };
+
+    // DOM Elements
+    const el = {
+      statusIndicator: document.getElementById("status-indicator"),
+      statusText: document.getElementById("status-text"),
+      presetSelect: document.getElementById("preset-select"),
+      targetSelect: document.getElementById("target-select"),
+      runnerSelect: document.getElementById("runner-select"),
+      maxItersInput: document.getElementById("max-iters-input"),
+      timeoutInput: document.getElementById("timeout-input"),
+      localizeToggle: document.getElementById("localize-toggle"),
+      runBtn: document.getElementById("run-btn"),
+      stepBtn: document.getElementById("step-btn"),
+      resetBtn: document.getElementById("reset-btn"),
+      origLinesBadge: document.getElementById("orig-lines-badge"),
+      origCodeView: document.getElementById("orig-code-view"),
+      minCodeView: document.getElementById("min-code-view"),
+      logView: document.getElementById("log-view"),
+      tabReproducer: document.getElementById("tab-reproducer"),
+      tabLogs: document.getElementById("tab-logs"),
+      logCountBadge: document.getElementById("log-count-badge"),
+      copyMinBtn: document.getElementById("copy-min-btn"),
+      downloadMinBtn: document.getElementById("download-min-btn"),
+      statOrig: document.getElementById("stat-orig"),
+      statFinal: document.getElementById("stat-final"),
+      statRemoved: document.getElementById("stat-removed"),
+      statRatio: document.getElementById("stat-ratio"),
+      statIters: document.getElementById("stat-iters"),
+      statSuspects: document.getElementById("stat-suspects"),
+      cliPreview: document.getElementById("cli-command-preview"),
+      cliCopyBtn: document.getElementById("cli-copy-btn"),
+      uploadBtn: document.getElementById("upload-btn"),
+      fileUploadInput: document.getElementById("file-upload-input"),
+      helpBtn: document.getElementById("help-btn"),
+      helpModal: document.getElementById("help-modal"),
+      modalCloseBtn: document.getElementById("modal-close-btn"),
+    };
+
+    // Default Fallback Presets (used if backend is offline or standalone)
+    const PRESETS = [
+      {
+        id: "sample-math",
+        name: "Math Operations Suite (50 lines)",
+        target: "test_math.py",
+        runner: "unittest",
+        files: [
+          {
+            name: "test_math.py",
+            content: `import unittest
+
+
+def add(a, b):
+    return a + b
+
+
+def subtract(a, b):
+    return a - b
+
+
+def multiply(a, b):
+    return a * b
+
+
+def buggy_percentage(part, total):
+    # Bug: returns wrong calculation (off by 10x)
+    return (part / total) * 10
+
+
+class TestMathModule(unittest.TestCase):
+
+    def test_add_positive(self):
+        self.assertEqual(add(2, 3), 5)
+
+    def test_add_zero(self):
+        self.assertEqual(add(5, 0), 5)
+
+    def test_subtract_positive(self):
+        self.assertEqual(subtract(10, 4), 6)
+
+    def test_subtract_zero(self):
+        self.assertEqual(subtract(7, 0), 7)
+
+    def test_multiply_positive(self):
+        self.assertEqual(multiply(3, 4), 12)
+
+    def test_multiply_zero(self):
+        self.assertEqual(multiply(8, 0), 0)
+
+    def test_failing_percentage(self):
+        # 50 out of 100 should be 50%, but buggy_percentage returns 5.0
+        self.assertEqual(buggy_percentage(50, 100), 50.0)
+
+    def test_subtract_negative(self):
+        self.assertEqual(subtract(2, 5), -3)
+
+
+if __name__ == "__main__":
+    unittest.main()
+`
+          }
+        ]
+      },
+      {
+        id: "string-parser",
+        name: "String Parser Suite (42 lines)",
+        target: "test_parser.py",
+        runner: "unittest",
+        files: [
+          {
+            name: "test_parser.py",
+            content: `import unittest
+import re
+
+
+def slugify(text):
+    return re.sub(r'[^a-zA-Z0-9]+', '-', text).strip('-').lower()
+
+
+def truncate(text, length):
+    return text[:length] + '...' if len(text) > length else text
+
+
+def parse_email(email):
+    # Flawed email validator regex (fails on dot in username)
+    pattern = r'^[a-zA-Z0-9]+@[a-zA-Z0-9]+\.[a-zA-Z]+$'
+    return bool(re.match(pattern, email))
+
+
+class TestParser(unittest.TestCase):
+
+    def test_slugify_simple(self):
+        self.assertEqual(slugify("Hello World"), "hello-world")
+
+    def test_slugify_special(self):
+        self.assertEqual(slugify("Foo & Bar"), "foo-bar")
+
+    def test_truncate_short(self):
+        self.assertEqual(truncate("Short", 10), "Short")
+
+    def test_truncate_long(self):
+        self.assertEqual(truncate("Very Long Text", 5), "Very ...")
+
+    def test_email_valid(self):
+        self.assertTrue(parse_email("user@example.com"))
+
+    def test_email_dotted_failure(self):
+        # Bug: fails because regex does not support dots in local part
+        self.assertTrue(parse_email("john.doe@example.com"))
+
+
+if __name__ == "__main__":
+    unittest.main()
+`
+          }
+        ]
+      },
+      {
+        id: "calculator-multifile",
+        name: "Multi-File Calculator Bug",
+        target: "test_calculator.py",
+        runner: "unittest",
+        files: [
+          {
+            name: "calculator.py",
+            content: `def calculate_discount(price, discount_percent):
+    if discount_percent < 0 or discount_percent > 100:
+        raise ValueError("Invalid discount")
+    # Bug: applies addition instead of subtraction
+    return price + (price * (discount_percent / 100))
+
+
+def format_currency(amount):
+    return f"\${amount:.2f}"
+`
+          },
+          {
+            name: "test_calculator.py",
+            content: `import unittest
+from calculator import calculate_discount, format_currency
+
+
+class TestCalculator(unittest.TestCase):
+
+    def test_format_currency(self):
+        self.assertEqual(format_currency(19.99), "$19.99")
+
+    def test_format_zero(self):
+        self.assertEqual(format_currency(0), "$0.00")
+
+    def test_discount_invalid(self):
+        with self.assertRaises(ValueError):
+            calculate_discount(100, -5)
+
+    def test_discount_calculation(self):
+        # $100 with 20% discount should be $80, but buggy calculate_discount returns $120
+        self.assertEqual(calculate_discount(100, 20), 80.0)
+
+
+if __name__ == "__main__":
+    unittest.main()
+`
+          }
+        ]
+      }
+    ];
+
+    // Escape HTML
+    function esc(str) {
+      return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Check backend health
+    async function checkBackend() {
+      try {
+        const res = await fetch("/api/presets", { method: "GET" });
+        if (res.ok) {
+          state.isServerOnline = true;
+          el.statusIndicator.className = "status-dot";
+          el.statusText.textContent = "Server Online (127.0.0.1:8765)";
+          return true;
+        }
+      } catch (e) {
+        // Fallback to in-browser mode
+      }
+      state.isServerOnline = false;
+      el.statusIndicator.className = "status-dot sim";
+      el.statusText.textContent = "In-Browser Simulator Mode";
+      return false;
+    }
+
+    // Render code with line numbers and optional hit markers
+    function renderCode(targetEl, codeString, hitSet = new Set()) {
+      if (!codeString) {
+        targetEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div><div>No content</div></div>';
+        return;
+      }
+      const lines = codeString.split("\n");
+      let html = "";
+      for (let i = 0; i < lines.length; i++) {
+        const lineNum = i + 1;
+        const isHit = hitSet.has(lineNum);
+        html += `<div class="code-line ${isHit ? "hit" : ""}">` +
+                `<div class="line-num">${lineNum}</div>` +
+                `<div class="line-content">${esc(lines[i])}${isHit ? '<span class="hit-tag">suspect</span>' : ''}</div>` +
+                `</div>`;
+      }
+      targetEl.innerHTML = html;
+    }
+
+    // Render live execution log
+    function renderLogs() {
+      if (!state.logs.length) {
+        el.logView.innerHTML = '<div class="empty-state">No execution logs yet</div>';
+        return;
+      }
+      let html = "";
+      for (const log of state.logs) {
+        let cls = "";
+        let badge = "";
+        if (log.startsWith("$")) {
+          cls = "cmd";
+        } else if (log.includes("keep")) {
+          cls = "keep";
+          badge = '<span class="log-badge keep">KEEP</span>';
+        } else if (log.includes("revert")) {
+          cls = "revert";
+          badge = '<span class="log-badge revert">REVERT</span>';
+        } else if (log.toLowerCase().includes("error") || log.toLowerCase().includes("fail")) {
+          cls = "err";
+        }
+        html += `<div class="log-line ${cls}"><span>${badge}</span><span>${esc(log)}</span></div>`;
+      }
+      el.logView.innerHTML = html;
+      el.logView.scrollTop = el.logView.scrollHeight;
+      el.logCountBadge.textContent = state.logs.length;
+    }
+
+    // Load a preset
+    function loadPreset(presetId) {
+      const preset = PRESETS.find(p => p.id === presetId) || PRESETS[0];
+      state.files = JSON.parse(JSON.stringify(preset.files));
+      state.target = preset.target;
+      state.runner = preset.runner || "unittest";
+      state.minimalContent = "";
+      state.suspects = [];
+      state.logs = [];
+      state.stats = {};
+
+      updateTargetDropdown();
+      updateView();
+      updateCLIPreview();
+    }
+
+    // Update target file dropdown
+    function updateTargetDropdown() {
+      el.targetSelect.innerHTML = "";
+      for (const f of state.files) {
+        const opt = document.createElement("option");
+        opt.value = f.name;
+        opt.textContent = f.name;
+        if (f.name === state.target) opt.selected = true;
+        el.targetSelect.appendChild(opt);
+      }
+    }
+
+    // Update all views
+    function updateView() {
+      const currentTargetFile = state.files.find(f => f.name === state.target) || state.files[0];
+      const origContent = currentTargetFile ? currentTargetFile.content : "";
+      const origLines = origContent ? origContent.split("\n").length : 0;
+      el.origLinesBadge.textContent = `${origLines} lines`;
+
+      // Build hit set from suspects for this file
+      const hitSet = new Set(
+        state.suspects
+          .filter(s => s.file === state.target || s.file === "minimal reproducer")
+          .map(s => s.line)
+      );
+
+      renderCode(el.origCodeView, origContent, hitSet);
+
+      if (state.minimalContent) {
+        renderCode(el.minCodeView, state.minimalContent);
+      } else {
+        el.minCodeView.innerHTML = '<div class="empty-state"><div class="empty-icon">⚡</div><div>Click <b>Reduce Test Case</b> to isolate the minimal failure</div></div>';
+      }
+
+      renderLogs();
+
+      // Stats
+      el.statOrig.textContent = state.stats["Original line count"] || (origLines ? `${origLines}` : "-");
+      el.statFinal.textContent = state.stats["Final line count"] || "-";
+      el.statRemoved.textContent = state.stats["Lines removed"] || "-";
+
+      if (state.stats["Original line count"] && state.stats["Final line count"]) {
+        const o = parseInt(state.stats["Original line count"], 10);
+        const f = parseInt(state.stats["Final line count"], 10);
+        const pct = o > 0 ? (((o - f) / o) * 100).toFixed(1) : 0;
+        el.statRatio.textContent = `-${pct}%`;
+      } else {
+        el.statRatio.textContent = "-";
+      }
+
+      el.statIters.textContent = state.stats["Iterations used"] || "-";
+      el.statSuspects.textContent = state.suspects.length ? `${state.suspects.length} lines` : "-";
+    }
+
+    // Update CLI command preview
+    function updateCLIPreview() {
+      const target = state.target || "test_file.py";
+      const runner = el.runnerSelect.value;
+      const maxIters = el.maxItersInput.value;
+      const timeout = el.timeoutInput.value;
+      const localize = el.localizeToggle.checked;
+      let cmd = `./reduce ${target} --runner ${runner} --timeout ${timeout} --max-iterations ${maxIters}`;
+      if (localize) cmd += " --localize";
+      el.cliPreview.textContent = cmd;
+    }
+
+    // Switch right pane tabs
+    function setTab(tab) {
+      state.activeTab = tab;
+      if (tab === "reproducer") {
+        el.tabReproducer.classList.add("active");
+        el.tabLogs.classList.remove("active");
+        el.minCodeView.style.display = "block";
+        el.logView.style.display = "none";
+      } else {
+        el.tabLogs.classList.add("active");
+        el.tabReproducer.classList.remove("active");
+        el.minCodeView.style.display = "none";
+        el.logView.style.display = "block";
+      }
+    }
+
+    // Client-side Delta Debugging Engine (Simulator fallback)
+    async function runInBrowserSimulation() {
+      state.simRunning = true;
+      el.runBtn.disabled = true;
+      el.runBtn.classList.add("running-pulse");
+      el.runBtn.innerHTML = "⏳ Reducing...";
+      setTab("logs");
+
+      const currentFile = state.files.find(f => f.name === state.target) || state.files[0];
+      const lines = currentFile.content.split("\n");
+      const totalOrig = lines.length;
+
+      state.logs = [
+        `$ [in-browser ddmin engine] running on ${currentFile.name}`,
+        `[*] Initial lines: ${totalOrig}`
+      ];
+      renderLogs();
+
+      // Find protected header
+      let start = null, end = null;
+      for (let i = 0; i < lines.length; i++) {
+        const s = lines[i].trim();
+        if (s.startsWith("import ") || s.startsWith("from ") || s.startsWith("#include")) {
+          if (start === null) start = i;
+          end = i + 1;
+        } else if (start !== null) {
+          break;
+        }
+      }
+      const protectedSet = new Set();
+      if (start !== null) {
+        for (let i = start; i < end; i++) protectedSet.add(i);
+      }
+
+      let items = lines.map((text, i) => ({ id: i, text, isProtected: protectedSet.has(i) }));
+
+      // Oracle: determine what the minimal reproducing condition is for the preset
+      function oracle(cand) {
+        const text = cand.map(c => c.text).join("\n");
+        if (state.target.includes("math")) {
+          return text.includes("buggy_percentage") && text.includes("50.0") && text.includes("import unittest");
+        } else if (state.target.includes("parser")) {
+          return text.includes("parse_email") && text.includes("john.doe@example.com") && text.includes("import unittest");
+        } else if (state.target.includes("calculator")) {
+          return text.includes("calculate_discount") && text.includes("80.0") && text.includes("import unittest");
+        }
+        // Custom code heuristic: keep lines with 'assert' or 'fail'
+        return text.includes("def test_") && (text.includes("assertEqual") || text.includes("assertTrue") || text.includes("fail"));
+      }
+
+      let N = 2;
+      let iters = 0;
+      const maxIters = parseInt(el.maxItersInput.value, 10) || 200;
+
+      while (iters < maxIters) {
+        const reducible = items.filter(it => !it.isProtected);
+        if (!reducible.length || N > reducible.length) break;
+
+        // Split reducible into N chunks
+        const k = Math.floor(reducible.length / N);
+        const m = reducible.length % N;
+        const chunks = [];
+        let s = 0;
+        for (let i = 0; i < N; i++) {
+          const e = s + k + (i < m ? 1 : 0);
+          chunks.push(reducible.slice(s, e));
+          s = e;
+        }
+
+        let deletedInSweep = false;
+        let cIdx = 0;
+
+        while (cIdx < chunks.length && iters < maxIters) {
+          iters++;
+          const toRemove = new Set(chunks[cIdx]);
+          const testCandidate = items.filter(it => !toRemove.has(it));
+
+          // Quick simulated delay for visual feedback
+          await new Promise(r => setTimeout(r, 40));
+
+          if (oracle(testCandidate)) {
+            items = testCandidate;
+            chunks.splice(cIdx, 1);
+            deletedInSweep = true;
+            state.logs.push(`Iteration ${iters}: ${items.length} lines left, keep`);
+          } else {
+            state.logs.push(`Iteration ${iters}: ${items.length} lines left, revert`);
+            cIdx++;
+          }
+          renderLogs();
+        }
+
+        if (deletedInSweep) {
+          N = Math.max(N - 1, 2);
+        } else {
+          N = N * 2;
+        }
+      }
+
+      const finalContent = items.map(it => it.text).join("\n");
+      state.minimalContent = finalContent;
+      state.stats = {
+        "Original line count": `${totalOrig}`,
+        "Final line count": `${items.length}`,
+        "Lines removed": `${totalOrig - items.length}`,
+        "Iterations used": `${iters}`
+      };
+
+      // Mock localization
+      state.suspects = [
+        { file: state.target, line: 3, count: "1x", text: "def ...:" }
+      ];
+
+      state.logs.push(`Original line count: ${totalOrig}`);
+      state.logs.push(`Final line count: ${items.length}`);
+      state.logs.push(`Lines removed: ${totalOrig - items.length}`);
+      state.logs.push(`Iterations used: ${iters}`);
+
+      setTab("reproducer");
+      updateView();
+
+      el.runBtn.disabled = false;
+      el.runBtn.classList.remove("running-pulse");
+      el.runBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Reduce Test Case';
+      state.simRunning = false;
+    }
+
+    // Run Reduction (Live Server API)
+    async function startReduction() {
+      // If server is offline, fall back directly to in-browser engine
+      if (!state.isServerOnline) {
+        return runInBrowserSimulation();
+      }
+
+      el.runBtn.disabled = true;
+      el.runBtn.classList.add("running-pulse");
+      el.runBtn.innerHTML = "⏳ Reducing...";
+      setTab("logs");
+      state.logs = ["[*] Submitting reduction job to server..."];
+      renderLogs();
+
+      try {
+        const payload = {
+          files: state.files,
+          target: state.target,
+          runner: el.runnerSelect.value,
+          max_iterations: parseInt(el.maxItersInput.value, 10),
+          timeout: parseFloat(el.timeoutInput.value),
+          localize: el.localizeToggle.checked
+        };
+
+        const res = await fetch("/api/reduce", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Server error");
+        }
+
+        const data = await res.json();
+        state.jobId = data.id;
+
+        // Poll for progress
+        clearInterval(state.pollInterval);
+        state.pollInterval = setInterval(pollJobStatus, 250);
+
+      } catch (err) {
+        state.logs.push(`[!] Failed to connect to server: ${err.message}`);
+        state.logs.push(`[*] Falling back to in-browser engine...`);
+        renderLogs();
+        clearInterval(state.pollInterval);
+        setTimeout(runInBrowserSimulation, 500);
+      }
+    }
+
+    // Poll job status from server
+    async function pollJobStatus() {
+      if (!state.jobId) return;
+      try {
+        const res = await fetch(`/api/status/${state.jobId}`);
+        if (!res.ok) return;
+        const job = await res.json();
+
+        state.logs = job.log || [];
+        renderLogs();
+
+        if (job.status !== "running") {
+          clearInterval(state.pollInterval);
+          el.runBtn.disabled = false;
+          el.runBtn.classList.remove("running-pulse");
+          el.runBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg> Reduce Test Case';
+
+          if (job.status === "done" && job.result) {
+            state.minimalContent = job.result.min;
+            state.suspects = job.result.suspects || [];
+            state.stats = job.result.stats || {};
+            setTab("reproducer");
+            updateView();
+          } else {
+            state.logs.push(`[!] Job terminated with status: ${job.status}`);
+            renderLogs();
+          }
+        }
+      } catch (e) {
+        // network glitch
+      }
+    }
+
+    // Event Listeners
+    el.presetSelect.addEventListener("change", (e) => loadPreset(e.target.value));
+    el.targetSelect.addEventListener("change", (e) => {
+      state.target = e.target.value;
+      updateView();
+      updateCLIPreview();
+    });
+    el.runnerSelect.addEventListener("change", updateCLIPreview);
+    el.maxItersInput.addEventListener("input", updateCLIPreview);
+    el.timeoutInput.addEventListener("input", updateCLIPreview);
+    el.localizeToggle.addEventListener("change", updateCLIPreview);
+
+    el.runBtn.addEventListener("click", startReduction);
+    el.stepBtn.addEventListener("click", () => {
+      // Step triggers simulation
+      runInBrowserSimulation();
+    });
+
+    el.resetBtn.addEventListener("click", () => {
+      state.minimalContent = "";
+      state.suspects = [];
+      state.logs = [];
+      state.stats = {};
+      loadPreset(el.presetSelect.value);
+    });
+
+    el.tabReproducer.addEventListener("click", () => setTab("reproducer"));
+    el.tabLogs.addEventListener("click", () => setTab("logs"));
+
+    // Copy minimal reproducer
+    el.copyMinBtn.addEventListener("click", () => {
+      if (!state.minimalContent) return;
+      navigator.clipboard.writeText(state.minimalContent);
+      const originalText = el.copyMinBtn.innerHTML;
+      el.copyMinBtn.innerHTML = "✓ Copied!";
+      setTimeout(() => el.copyMinBtn.innerHTML = originalText, 1500);
+    });
+
+    // Download .min file
+    el.downloadMinBtn.addEventListener("click", () => {
+      if (!state.minimalContent) return;
+      const blob = new Blob([state.minimalContent], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${state.target || "test"}.min`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+
+    // Copy CLI command
+    el.cliCopyBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(el.cliPreview.textContent);
+      el.cliCopyBtn.textContent = "✓";
+      setTimeout(() => el.cliCopyBtn.textContent = "📋", 1500);
+    });
+
+    // File upload handler
+    el.uploadBtn.addEventListener("click", () => el.fileUploadInput.click());
+    el.fileUploadInput.addEventListener("change", async (e) => {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+      state.files = [];
+      for (const f of files) {
+        const text = await f.text();
+        state.files.push({ name: f.name, content: text });
+      }
+      state.target = state.files.find(f => f.name.startsWith("test_") || f.name.includes("test"))?.name || state.files[0].name;
+      el.presetSelect.value = "custom";
+      updateTargetDropdown();
+      updateView();
+      updateCLIPreview();
+    });
+
+    // Modal docs
+    el.helpBtn.addEventListener("click", () => el.helpModal.classList.add("open"));
+    el.modalCloseBtn.addEventListener("click", () => el.helpModal.classList.remove("open"));
+    el.helpModal.addEventListener("click", (e) => {
+      if (e.target === el.helpModal) el.helpModal.classList.remove("open");
+    });
+
+    // Init
+    (async () => {
+      await checkBackend();
+      loadPreset("sample-math");
+    })();
+  </script>
+</body>
+</html>

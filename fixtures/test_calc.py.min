@@ -1,0 +1,7 @@
+import unittest
+
+from calc import add, average, percentage
+class TestCalc(unittest.TestCase):
+    def test_percentage_failing(self):
+        self.assertEqual(percentage(50, 100), 50.0)
+
